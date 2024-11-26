@@ -1,7 +1,7 @@
 {
     "dockerfile_lines": [],
     "graphs": {
-      "company_maistro": "./company_maistro.py:graph"
+      "people_maistro": "./people_maistro.py:graph"
     },
     "python_version": "3.11",
     "env": "./.env",

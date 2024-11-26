@@ -9,7 +9,7 @@ from dataclasses import dataclass
 @dataclass(kw_only=True)
 class Configuration:
     """The configurable fields for the chatbot."""
-    max_search_queries: int = 3 # Max search queries per company
+    max_search_queries: int = 3 # Max search queries per person
     max_search_results: int = 3 # Max search results per query
 
     @classmethod

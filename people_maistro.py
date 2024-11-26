@@ -133,20 +133,20 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source, inclu
 def format_all_notes(completed_notes: list[str]) -> str:
     """ Format a list of notes into a string """
     formatted_str = ""
-    for idx, company_notes in enumerate(completed_notes, 1):
+    for idx, people_notes in enumerate(completed_notes, 1):
         formatted_str += f"""
 {'='*60}
-Company {idx}:
+People {idx}:
 {'='*60}
 Notes from research:
-{company_notes}"""
+{people_notes}"""
     return formatted_str
 
 # -----------------------------------------------------------------------------
 # Schema
-class CompanyList(BaseModel):
-    companies: List[str] = Field(
-        description="List of companies to research.",
+class PeopleList(BaseModel):
+    people: List[str] = Field(
+        description="List of people to research.",
     )
 
 class SearchQuery(BaseModel):
@@ -160,8 +160,8 @@ class Queries(BaseModel):
 @dataclass(kw_only=True)
 class InputState:
     """Input state defines the interface between the graph and the user (external API)."""
-    companies: str
-    "List of company names to research."
+    people: str
+    "List of people to research."
 
     extraction_schema: dict[str, Any]
     "The json schema defines the information the agent is tasked with filling out."
@@ -172,8 +172,8 @@ class InputState:
 @dataclass(kw_only=True)
 class OverallResearchState:
     """Input state defines the interface between the graph and the user (external API)."""
-    companies: str
-    "Company names to research provided by the user."
+    people: str
+    "People names to research provided by the user."
 
     extraction_schema: dict[str, Any]
     "The json schema defines the information the agent is tasked with filling out."
@@ -182,8 +182,8 @@ class OverallResearchState:
     "Any notes from the user to start the research process."
 
     # Add default values for required fields
-    company_list: list = field(default_factory=list)
-    "List of company names to research."
+    people_list: list = field(default_factory=list)
+    "List of people names to research."
 
     completed_notes: Annotated[list, operator.add] = field(default_factory=list)
     "Notes from completed research related to the schema"
@@ -196,10 +196,10 @@ class OverallResearchState:
     """
 
 @dataclass(kw_only=True)
-class CompanyResearchState:
-    """State for individual company research."""
-    company: str
-    "Company name to research."
+class PeopleResearchState:
+    """State for individual people research."""
+    people: str
+    "Person name to research."
 
     extraction_schema: dict[str, Any]
     "The json schema defines the information the agent is tasked with filling out."
@@ -228,17 +228,17 @@ class OutputState:
 # -----------------------------------------------------------------------------
 # Prompts
 
-company_extraction_instructions = """
-    You are an expert at parsing company names from text.
-    Your task is to extract a clean list of company names from the user's input string.
+people_extraction_instructions = """
+    You are an expert at parsing people names from text.
+    Your task is to extract a clean list of people names from the user's input string.
     
     Guidelines:
     - Remove any punctuation or separators from the input
-    - Each company name should be listed exactly once
-    - Preserve the official capitalization of company names
-    - Do not add any companies that aren't explicitly mentioned in the input
+    - Each people name should be listed exactly once
+    - Preserve the official capitalization of people names
+    - Do not add any people that aren't explicitly mentioned in the input
     
-    Return the companies in a structured format that matches the CompanyList schema.
+    Return the people in a structured format that matches the PeopleList schema.
 """
 
 extraction_prompt = """ Your task is to take notes gather from web research
@@ -256,9 +256,9 @@ Here are all the notes from research:
 <Web research notes>
  """
 
-query_writer_instructions = """You are a search query generator tasked with creating targeted search queries to gather specific company information.
+query_writer_instructions = """You are a search query generator tasked with creating targeted search queries to gather specific information about people.
 
-Here is the company you are researching: {company}
+Here are the people you are researching: {people}
 
 Generate at most {max_search_queries} search queries that will help gather the following information:
 
@@ -267,15 +267,14 @@ Generate at most {max_search_queries} search queries that will help gather the f
 </schema>
 
 Your query should:
-1. Focus on finding factual, up-to-date company information
-2. Target official sources, news, and reliable business databases
+1. Focus on finding factual, up-to-date information
+2. Target official sources, news, and websites
 3. Prioritize finding information that matches the schema requirements
-4. Include the company name and relevant business terms
-5. Be specific enough to avoid irrelevant results
+4. Be specific enough to avoid irrelevant results
 
 Create a focused query that will maximize the chances of finding schema-relevant information."""
 
-_INFO_PROMPT = """You are doing web research on a company, {company}. 
+_INFO_PROMPT = """You are doing web research on people, {people}. 
 
 The following schema shows the type of information we're interested in:
 
@@ -283,7 +282,7 @@ The following schema shows the type of information we're interested in:
 {info}
 </schema>
 
-You have just scraped website content. Your task is to take clear, organized notes about the company, focusing on topics relevant to our interests.
+You have just scraped website content. Your task is to take clear, organized notes about the people, focusing on topics relevant to our interests.
 
 <Website contents>
 {content}
@@ -305,17 +304,17 @@ Remember: Don't try to format the output to match the schema - just take clear n
 
 # -----------------------------------------------------------------------------
 # Nodes
-def plan_companies_to_research(state: OverallResearchState):
-    """Extract a list of companies to research based on the user's input."""
+def plan_people_to_research(state: OverallResearchState):
+    """Extract a list of people to research based on the user's input."""
 
-    # Extract company list
-    structured_llm = claude_3_5_sonnet.with_structured_output(CompanyList)
+    # Extract people list
+    structured_llm = claude_3_5_sonnet.with_structured_output(PeopleList)
 
     # Generate queries  
-    company_list = structured_llm.invoke([SystemMessage(content=company_extraction_instructions)]+[HumanMessage(content=f"Extract a list of companies to research based on this input: {state.companies}")])
-    return {"company_list": company_list.companies}
+    people_list = structured_llm.invoke([SystemMessage(content=people_extraction_instructions)]+[HumanMessage(content=f"Extract a list of people to research based on this input: {state.people}")])
+    return {"people_list": people_list.people}
 
-async def research_company(state: CompanyResearchState, config: RunnableConfig) -> str:
+async def research_people(state: PeopleResearchState, config: RunnableConfig) -> str:
     """Execute a multi-step web search and information extraction process.
 
         This function performs the following steps:
@@ -347,7 +346,7 @@ async def research_company(state: CompanyResearchState, config: RunnableConfig) 
     structured_llm = claude_3_5_sonnet.with_structured_output(Queries)
     
     # Format system instructions
-    query_instructions = query_writer_instructions.format(company=state.company, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
+    query_instructions = query_writer_instructions.format(people=state.people, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
     results = structured_llm.invoke([SystemMessage(content=query_instructions)]+[HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate.")])
@@ -378,7 +377,7 @@ async def research_company(state: CompanyResearchState, config: RunnableConfig) 
     p = _INFO_PROMPT.format(
         info=json.dumps(state.extraction_schema, indent=2),
         content=source_str,
-        company=state.company,
+        people=state.people,
         user_notes=state.user_notes
     )
     result = await claude_3_5_sonnet.ainvoke(p)
@@ -396,29 +395,29 @@ def gather_notes_extract_schema(state: OverallResearchState) -> dict[str, Any]:
     result = structured_llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=f"Produce a structured output from these notes.")])
     return {"extracted_information": result}
 
-async def initiate_company_research(state: OverallResearchState):
+async def initiate_people_research(state: OverallResearchState):
     """ Write any final sections using the Send API to parallelize the process """    
 
     # Kick off research parallel via Send() API
     return [
-        Send("research_company", CompanyResearchState(
-            company=company,
+        Send("research_people", PeopleResearchState(
+            people=people,
             user_notes=state.user_notes,
             extraction_schema=state.extraction_schema,
             completed_notes=[]  # Initialize empty list for completed notes
         ))  
-        for company in state.company_list 
+        for people in state.people_list 
     ]
 
 # Add nodes and edges 
 builder = StateGraph(OverallResearchState, input=InputState, output=OutputState, config_schema=configuration.Configuration)
-builder.add_node("plan_companies_to_research", plan_companies_to_research)
+builder.add_node("plan_people_to_research", plan_people_to_research)
 builder.add_node("gather_notes_extract_schema", gather_notes_extract_schema)
-builder.add_node("research_company", research_company)
+builder.add_node("research_people", research_people)
 
-builder.add_edge(START, "plan_companies_to_research")
-builder.add_conditional_edges("plan_companies_to_research", initiate_company_research, ["research_company"])
-builder.add_edge("research_company", "gather_notes_extract_schema")
+builder.add_edge(START, "plan_people_to_research")
+builder.add_conditional_edges("plan_people_to_research", initiate_people_research, ["research_people"])
+builder.add_edge("research_people", "gather_notes_extract_schema")
 builder.add_edge("gather_notes_extract_schema", END)
 
 # Compile
