@@ -341,7 +341,7 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
 
     # Generate queries  
     if 'reflection' in state:
-        human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate. Make them different to these prior queries {state["queries"]}")]
+        human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate. Make them different to these prior queries {state['queries']}")]
     else:
         human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate.")]
     results = structured_llm.invoke([SystemMessage(content=query_instructions)]+human_messages)
