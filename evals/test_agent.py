@@ -1,8 +1,9 @@
-from langsmith import Client
+from langsmith import Client, evaluate
 from Levenshtein import ratio
-from langsmith import evaluate
 from langgraph.pregel.remote import RemoteGraph
 import os
+from pydantic import BaseModel
+from typing import Optional
 
 # Defaults
 EXPERIMENT_PREFIX = "People mAIstro "
@@ -71,16 +72,12 @@ extraction_schema = {
     "title": "Person-Schema",
 }
 
-from dataclasses import dataclass
-
 DEFAULT_CONFIG = {
     "configurable": {
         "prompt": MAIN_PROMPT,
         "max_loops": 3
     }
 }
-from pydantic import BaseModel
-from typing import Optional
 
 class Person(BaseModel):
     """A class representing a person to research."""
