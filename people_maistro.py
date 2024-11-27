@@ -354,7 +354,7 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
     structured_llm = claude_3_5_sonnet.with_structured_output(Queries)
     
     # Format system instructions
-    people_str = state.people['name'] + " at " + state.people['company']
+    people_str = state.people.name + " at " + state.people.company
     query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
