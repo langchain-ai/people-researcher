@@ -11,9 +11,9 @@ NUMERIC_FIELDS = ("Years-Experience")
 FUZZY_MATCH_FIELDS = ("Role","Company")
 LIST_OF_STRING_FIELDS = ("Prior-Companies")
 
-os.environ["OPENAI_API_KEY"] = "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"
-os.environ["LANGSMITH_API_KEY"] = "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"
-os.environ["TAVILY_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "..."
+os.environ["LANGSMITH_API_KEY"] = "..."
+os.environ["TAVILY_API_KEY"] = "..."
 
 client = Client()
 
