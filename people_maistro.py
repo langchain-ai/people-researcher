@@ -147,15 +147,15 @@ Notes from research:
 
 class Person(BaseModel):
     """A class representing a person to research."""
-    name: Optional[str]
+    name: Optional[str] = None
     """The name of the person."""
-    company: Optional[str]
+    company: Optional[str] = None
     """The current company of the person."""
-    linkedin: Optional[str]
+    linkedin: Optional[str] = None
     """The Linkedin URL of the person."""
     email: str
     """The email of the person."""
-    role: Optional[str]
+    role: Optional[str] = None
     """The current title of the person."""
 
 class PeopleList(BaseModel):
