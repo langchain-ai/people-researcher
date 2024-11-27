@@ -144,8 +144,16 @@ Notes from research:
 
 # -----------------------------------------------------------------------------
 # Schema
+@dataclass(kw_only=True)
+class Person:
+    """A class representing a person to research."""
+    name: str
+    """The name of the person"""
+    company: str
+    """The current company of the person"""
+
 class PeopleList(BaseModel):
-    people: List[str] = Field(
+    people: List[Person] = Field(
         description="List of people to research.",
     )
 
@@ -173,7 +181,7 @@ class InputState:
 class OverallResearchState:
     """Input state defines the interface between the graph and the user (external API)."""
     people: str
-    "People names to research provided by the user."
+    "People to research provided by the user."
 
     extraction_schema: dict[str, Any]
     "The json schema defines the information the agent is tasked with filling out."
@@ -183,7 +191,7 @@ class OverallResearchState:
 
     # Add default values for required fields
     people_list: list = field(default_factory=list)
-    "List of people names to research."
+    "List of people to research."
 
     completed_notes: Annotated[list, operator.add] = field(default_factory=list)
     "Notes from completed research related to the schema"
@@ -198,8 +206,8 @@ class OverallResearchState:
 @dataclass(kw_only=True)
 class PeopleResearchState:
     """State for individual people research."""
-    people: str
-    "Person name to research."
+    people: Person
+    "People to research."
 
     extraction_schema: dict[str, Any]
     "The json schema defines the information the agent is tasked with filling out."
@@ -346,7 +354,8 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
     structured_llm = claude_3_5_sonnet.with_structured_output(Queries)
     
     # Format system instructions
-    query_instructions = query_writer_instructions.format(people=state.people, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
+    people_str = state.people.name + " at " + state.people.company
+    query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
     results = structured_llm.invoke([SystemMessage(content=query_instructions)]+[HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate.")])
