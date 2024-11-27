@@ -11,10 +11,9 @@ NUMERIC_FIELDS = ("Years-Experience")
 FUZZY_MATCH_FIELDS = ("Role","Company")
 LIST_OF_STRING_FIELDS = ("Prior-Companies")
 
-os.environ.clear()
-os.environ["OPENAI_API_KEY"] = "..."
-os.environ["LANGSMITH_API_KEY"] = "..."
-os.environ["TAVILY_API_KEY"] = "..."
+os.environ["OPENAI_API_KEY"] = "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"
+os.environ["LANGSMITH_API_KEY"] = "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"
+os.environ["TAVILY_API_KEY"] = "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"
 
 client = Client()
 
@@ -175,6 +174,21 @@ def evaluate_agent(outputs: dict, reference_outputs: dict):
     }
     return sum(results.values()) / len(results)
 
+def run_evals(
+    *,
+    max_concurrency: int = 2,
+    experiment_prefix: str = EXPERIMENT_PREFIX
+):
+    res = evaluate(
+        run_agent,
+        data=people_dataset,
+        evaluators=[evaluate_agent],
+        experiment_prefix=experiment_prefix,
+        max_concurrency=max_concurrency,
+        blocking=True
+    )
+
+    return res
 
 if __name__ == "__main__":
     import argparse
@@ -194,11 +208,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    evaluate(
-        run_agent,
-        data=people_dataset,
-        evaluators=[evaluate_agent],
-        experiment_prefix=args.experiment_prefix,
-        max_concurrency=args.max_concurrency,
-        blocking=False
-    )
+    run_evals(max_concurrency=args.max_concurrency, experiment_prefix=args.experiment_prefix)
+    
