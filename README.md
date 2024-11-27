@@ -70,7 +70,7 @@ Here is an example schema that can be supplied:
 
 Currently there is a single evaluation metric: fraction of the fields that were correctly extracted (per person). Correctness is defined differently depending on the field type:
 
-- fuzzy matching for list og string fields such as `Prior-Companies`
+- fuzzy matching for list of string fields such as `Prior-Companies`
 - fuzzy matches for fields like `Role` / `Company`
 - checking within a certain tolerance (+/- 15%) for `Years-Experience` field
 
