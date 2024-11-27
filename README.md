@@ -60,32 +60,40 @@ Here is an example schema that can be supplied:
 }
 ```
 
-## Evaluation
 
-### Dataset
+## Dataset
 
-- [People Dataset](https://smith.langchain.com/public/3dfd291c-4ccf-4d5e-8319-4a5812250599/d)
+There is one dataset for public evaluation in LangSmith:
 
-### Metric
+- [People Dataset](https://smith.langchain.com/public/bb139cd5-c656-4323-9bea-84cb7bf6080a/d). This dataset has a list of people to extract the following fields for:
+  - `Years-Experience`
+  - `Company`
+  - `Role`
+  - `Prior-Companies`
 
-Currently there is a single evaluation metric: fraction of the fields that were correctly extracted (per person). Correctness is defined differently depending on the field type:
-
-- fuzzy matching for list of string fields such as `Prior-Companies`
-- fuzzy matches for fields like `Role` / `Company`
-- checking within a certain tolerance (+/- 15%) for `Years-Experience` field
 
 ### Running evals
 
-To evaluate the People mAIstro agent, you can run `evals/test_agent.py` script. This will create new experiments in LangSmith for the [dataset](#dataset) mentioned above.
+To evaluate the People mAIstro agent, you can run the `run_eval.py` script. This will create new experiments in LangSmith for the [dataset](#dataset) mentioned above.
 
-Basic usage:
+**Basic usage:**
 
 ```shell
 python evals/test_agent.py
 ```
 
-You can also customize additional parameters such as the maximum number of concurrent runs and the experiment prefix.
+By default this will use the `Person Researcher Dataset` dataset & `People mAIstro` agent by LangChain.
+
+**Advanced usage:**
+
+You can pass the following parameters to customize the evaluation:
+
+- `--dataset-id`: ID of the dataset to evaluate against. Defaults to `Person Researcher Dataset` dataset.
+- `--agent-id`: ID of the agent to evaluate. Defaults to `people_maistro`.
+- `--agent-url`: URL of the deployed agent to evaluate. Defaults to `People mAIstro` deployment.
+- `--experiment-prefix`: Prefix for the experiment name.
+- `--min-score`: Minimum acceptable score for evaluation. If specified, the script will raise an assertion error if the average score is below this threshold.
 
 ```shell
-python evals/test_agent.py --max-concurrency 4 --experiment-prefix "My custom prefix"
+python evals/test_agent.py --experiment-prefix "My custom prefix" --min-score 0.9
 ```

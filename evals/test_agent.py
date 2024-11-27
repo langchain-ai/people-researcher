@@ -4,6 +4,8 @@ from langgraph.pregel.remote import RemoteGraph
 import os
 from pydantic import BaseModel
 from typing import Optional
+from langsmith.evaluation import EvaluationResults
+import argparse
 
 # Defaults
 EXPERIMENT_PREFIX = "People mAIstro "
@@ -11,10 +13,13 @@ TOLERANCE = 0.15  # should match within 15%
 NUMERIC_FIELDS = ("Years-Experience")
 FUZZY_MATCH_FIELDS = ("Role","Company")
 LIST_OF_STRING_FIELDS = ("Prior-Companies")
+DEFAULT_DATASET_NAME = "Person Researcher Dataset"
+DEFAULT_GRAPH_ID = "people_maistro"
+DEFAULT_AGENT_URL = "https://ht-abandoned-cynic-27-d4d35e0b052a570a9c5cb83f703881f4.default.us.langgraph.app"
 
-os.environ["OPENAI_API_KEY"] = "..."
-os.environ["LANGSMITH_API_KEY"] = "..."
-os.environ["TAVILY_API_KEY"] = "..."
+os.environ["OPENAI_API_KEY"] = "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"
+os.environ["LANGSMITH_API_KEY"] = "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"
+os.environ["TAVILY_API_KEY"] = "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"
 
 client = Client()
 
@@ -92,12 +97,6 @@ class Person(BaseModel):
     role: Optional[str] = None
     """The current title of the person."""
 
-def run_agent(inputs, config=None):
-    agent_inputs = {"person": Person(name=inputs["Person"],email=inputs["Work-Email"],linkedin=inputs['Linkedin']),
-                    "extraction_schema": extraction_schema}
-    response = graph.invoke(agent_inputs, config or DEFAULT_CONFIG)
-    return {"info": response["extracted_information"]}
-
 def evaluate_list_of_string_fields(outputs: dict, reference_outputs: dict):
     field_to_score = {}
     for k in LIST_OF_STRING_FIELDS:
@@ -171,39 +170,104 @@ def evaluate_agent(outputs: dict, reference_outputs: dict):
     }
     return sum(results.values()) / len(results)
 
-def run_evals(
+def make_agent_runner(graph_id: str, agent_url: str):
+    agent_graph = RemoteGraph(graph_id, url=agent_url)
+    
+    def run_agent(inputs: dict):
+        agent_inputs = {
+            "person": Person(
+                name=inputs["Person"],
+                email=inputs["Work-Email"],
+                linkedin=inputs['Linkedin']
+            ),
+            "extraction_schema": extraction_schema
+        }
+        response = agent_graph.invoke(agent_inputs, DEFAULT_CONFIG)
+        return {"info": response["extracted_information"]}
+    
+    return run_agent
+
+def get_agent_metadata(graph_id: str, agent_url: str):
+    if "marketplace" in agent_url:
+        project_id = agent_url.split("/")[-1]
+        return {"project_id": project_id, "graph_id": graph_id}
+    return {"graph_id": graph_id}
+
+def run_eval(
     *,
+    dataset_name: str = DEFAULT_DATASET_NAME,
+    graph_id: str = DEFAULT_GRAPH_ID,
+    agent_url: str = DEFAULT_AGENT_URL,
+    experiment_prefix: Optional[str] = None,
+    min_score: Optional[float] = None,
     max_concurrency: int = 2,
-    experiment_prefix: str = EXPERIMENT_PREFIX
-):
-    res = evaluate(
+) -> EvaluationResults:
+    dataset = client.read_dataset(dataset_name=dataset_name)
+    run_agent = make_agent_runner(graph_id, agent_url)
+    results = evaluate(
         run_agent,
-        data=people_dataset,
+        data=dataset,
         evaluators=[evaluate_agent],
         experiment_prefix=experiment_prefix,
+        metadata=get_agent_metadata(graph_id, agent_url),
         max_concurrency=max_concurrency,
         blocking=True
     )
 
-    return res
+    if min_score is not None:
+        results_df = results.to_pandas()
+        score = results_df["feedback.evaluate_agent"].mean()
+        if score < min_score:
+            raise AssertionError(
+                f"Average fraction of correctly extracted fields ({score}) is less than min expected score of {min_score}"
+            )
 
+    return results
+
+# Update main block
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dataset-name",
+        type=str,
+        default=DEFAULT_DATASET_NAME,
+        help="Name of the dataset to evaluate against",
+    )
+    parser.add_argument(
+        "--graph-id",
+        type=str,
+        default=DEFAULT_GRAPH_ID,
+        help="ID of the graph to evaluate",
+    )
+    parser.add_argument(
+        "--agent-url",
+        type=str,
+        default=DEFAULT_AGENT_URL,
+        help="URL of the deployed agent to evaluate",
+    )
+    parser.add_argument(
+        "--experiment-prefix",
+        type=str,
+        help="Experiment prefix for the evaluation",
+    )
+    parser.add_argument(
+        "--min-score",
+        type=float,
+        help="Minimum acceptable score for evaluation",
+    )
     parser.add_argument(
         "--max-concurrency",
         type=int,
         default=2,
         help="Maximum number of concurrent runs during evaluation",
     )
-    parser.add_argument(
-        "--experiment-prefix",
-        type=str,
-        default=EXPERIMENT_PREFIX,
-        help="Experiment prefix for the evaluation",
-    )
     args = parser.parse_args()
 
-    run_evals(max_concurrency=args.max_concurrency, experiment_prefix=args.experiment_prefix)
-    
+    run_eval(
+        dataset_name=args.dataset_name,
+        graph_id=args.graph_id,
+        agent_url=args.agent_url,
+        experiment_prefix=args.experiment_prefix,
+        min_score=args.min_score,
+        max_concurrency=args.max_concurrency,
+    )
