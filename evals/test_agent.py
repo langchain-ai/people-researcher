@@ -10,16 +10,16 @@ import argparse
 # Defaults
 EXPERIMENT_PREFIX = "People mAIstro "
 TOLERANCE = 0.15  # should match within 15%
-NUMERIC_FIELDS = ("Years-Experience")
+NUMERIC_FIELDS = ("Years-Experience",)
 FUZZY_MATCH_FIELDS = ("Role","Company")
-LIST_OF_STRING_FIELDS = ("Prior-Companies")
+LIST_OF_STRING_FIELDS = ("Prior-Companies",)
 DEFAULT_DATASET_NAME = "Person Researcher Dataset"
 DEFAULT_GRAPH_ID = "people_maistro"
 DEFAULT_AGENT_URL = "https://ht-abandoned-cynic-27-d4d35e0b052a570a9c5cb83f703881f4.default.us.langgraph.app"
 
-os.environ["OPENAI_API_KEY"] = "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"
-os.environ["LANGSMITH_API_KEY"] = "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"
-os.environ["TAVILY_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "..."
+os.environ["LANGSMITH_API_KEY"] = "..."
+os.environ["TAVILY_API_KEY"] = "..."
 
 client = Client()
 
