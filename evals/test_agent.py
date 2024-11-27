@@ -12,7 +12,7 @@ TOLERANCE = 0.15  # should match within 15%
 NUMERIC_FIELDS = ("Years-Experience",)
 FUZZY_MATCH_FIELDS = ("Role","Company")
 LIST_OF_STRING_FIELDS = ("Prior-Companies",)
-DEFAULT_DATASET_NAME = "Person Researcher Dataset"
+DEFAULT_DATASET_NAME = "People Research Dataset"
 DEFAULT_GRAPH_ID = "people_maistro"
 DEFAULT_AGENT_URL = "https://api.smith.langchain.com/marketplace/cc9aac58-f334-4545-80d9-59300faf8aa2"
 
