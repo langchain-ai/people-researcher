@@ -366,12 +366,12 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
     # Execute all searches concurrently
     search_docs = await asyncio.gather(*search_tasks)
 
-    # Grab data from raw LinkedIn URL if it exists
-    if 'linkedin' in state.person:
-        search_docs += WebBaseLoader(state.person['linkedin']).load()
-
     # Deduplicate and format sources
     source_str = deduplicate_and_format_sources(search_docs, max_tokens_per_source=1000, include_raw_content=True)
+
+    # Grab data from raw LinkedIn URL if it exists
+    if 'linkedin' in state.person and state.person['linkedin'] is not None:
+        search_docs += WebBaseLoader(state.person['linkedin']).load().page_content
 
     # Generate structured notes relevant to the extraction schema
     p = _INFO_PROMPT.format(
