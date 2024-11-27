@@ -367,8 +367,8 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
     search_docs = await asyncio.gather(*search_tasks)
 
     # Grab data from raw LinkedIn URL if it exists
-    if state.person.linkedin:
-        search_docs += WebBaseLoader(state.person.linkedin).load()
+    if 'linkedin' in state.person:
+        search_docs += WebBaseLoader(state.person['linkedin']).load()
 
     # Deduplicate and format sources
     source_str = deduplicate_and_format_sources(search_docs, max_tokens_per_source=1000, include_raw_content=True)
