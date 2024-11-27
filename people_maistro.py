@@ -340,7 +340,7 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
     query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
-    if 'reflection' in state:
+    if state.reflection is not None:
         human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate. Make them different to these prior queries {state['queries']}")]
     else:
         human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate.")]
@@ -421,7 +421,7 @@ Please respond YES if we need to redo the research, and NO if we can finish. Onl
 def reflect_node(state: OverallResearchState) -> dict[str, Any]:
     """Reflect on gathered information and determine if more research is needed."""
     # Don't reflect more than once
-    if "reflect" in state:
+    if state.reflection is not None:
         return {"reflection": "NO"}
     system_prompt = reflect_prompt.format(
         extracted_info=json.dumps(state.extracted_information, indent=2),
