@@ -149,8 +149,10 @@ class Person(BaseModel):
     """A class representing a person to research."""
     name: str
     """The name of the person"""
-    company: str
+    company: Optional[str]
     """The current company of the person"""
+    linkedin: Optional[str]
+    """The Linkedin URL of the person"""
 
 class PeopleList(BaseModel):
     people: List[Person] = Field(
@@ -262,7 +264,7 @@ Here are all the notes from research:
 <Web research notes>
 {notes}
 <Web research notes>
- """
+"""
 
 query_writer_instructions = """You are a search query generator tasked with creating targeted search queries to gather specific information about people.
 
@@ -354,7 +356,7 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
     structured_llm = claude_3_5_sonnet.with_structured_output(Queries)
     
     # Format system instructions
-    people_str = state.people.name + " at " + state.people.company
+    people_str = state.people.name + " Linkedin URL: " + state.people.linkedin
     query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
