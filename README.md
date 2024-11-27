@@ -65,7 +65,7 @@ Here is an example schema that can be supplied:
 
 There is one dataset for public evaluation in LangSmith:
 
-- [People Dataset](https://smith.langchain.com/public/9160e39c-44d1-40f4-8cab-53ed90307833/d). This dataset has a list of people to extract the following fields for:
+- [People Dataset](https://smith.langchain.com/public/2af89d2a-93f6-4c84-80ac-70defcfd14c8/d). This dataset has a list of people to extract the following fields for:
   - `Years-Experience`
   - `Company`
   - `Role`
