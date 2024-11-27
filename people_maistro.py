@@ -341,7 +341,7 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
 
     # Generate queries  
     if state.reflection is not None:
-        human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate. Make them different to these prior queries {state['queries']}")]
+        human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate. Make them different to these prior queries {state.queries}")]
     else:
         human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate.")]
     results = structured_llm.invoke([SystemMessage(content=query_instructions)]+human_messages)
@@ -371,7 +371,7 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
 
     # Grab data from raw LinkedIn URL if it exists
     if 'linkedin' in state.person and state.person['linkedin'] is not None:
-        search_docs += WebBaseLoader(state.person['linkedin']).load().page_content
+        search_docs += WebBaseLoader(state.person['linkedin']).load()[0].page_content
 
     # Generate structured notes relevant to the extraction schema
     p = _INFO_PROMPT.format(
@@ -440,7 +440,7 @@ def reflect_node(state: OverallResearchState) -> dict[str, Any]:
 def decide_whether_to_research_again(state: OverallResearchState):
     """Determine whether additional research is needed based on reflection results."""
     # If confidence score is below threshold or there are missing required fields
-    if state['reflection'] == "YES":
+    if state.reflection == "YES":
         return "research_people"
     else:
         return "__end__"
