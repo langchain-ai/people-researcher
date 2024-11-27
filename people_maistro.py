@@ -3,6 +3,7 @@ import operator
 import json
 
 from tavily import TavilyClient, AsyncTavilyClient
+from langchain_community.document_loaders import WebBaseLoader
 
 from langchain_anthropic import ChatAnthropic 
 from langchain_openai import ChatOpenAI
@@ -158,11 +159,6 @@ class Person(BaseModel):
     role: Optional[str] = None
     """The current title of the person."""
 
-class PeopleList(BaseModel):
-    people: List[Person] = Field(
-        description="List of people to research.",
-    )
-
 class SearchQuery(BaseModel):
     search_query: str = Field(None, description="Query for web search.")
 
@@ -174,8 +170,8 @@ class Queries(BaseModel):
 @dataclass(kw_only=True)
 class InputState:
     """Input state defines the interface between the graph and the user (external API)."""
-    people: str
-    "List of people to research."
+    person: Person
+    "Person to research."
 
     extraction_schema: dict[str, Any]
     "The json schema defines the information the agent is tasked with filling out."
@@ -186,8 +182,8 @@ class InputState:
 @dataclass(kw_only=True)
 class OverallResearchState:
     """Input state defines the interface between the graph and the user (external API)."""
-    people: str
-    "People to research provided by the user."
+    person: Person
+    "Person to research provided by the user."
 
     extraction_schema: dict[str, Any]
     "The json schema defines the information the agent is tasked with filling out."
@@ -208,21 +204,14 @@ class OverallResearchState:
     based on the user's query and the graph's execution.
     This is the primary output of the enrichment process.
     """
-
-@dataclass(kw_only=True)
-class PeopleResearchState:
-    """State for individual people research."""
-    people: Person
-    "People to research."
-
-    extraction_schema: dict[str, Any]
-    "The json schema defines the information the agent is tasked with filling out."
-
-    user_notes: str = field(default=None)
-    "Any notes from the user to start the research process."
-
-    completed_notes: list[str] # Final key we duplicate in outer state for Send() API
-    "Notes from completed research related to the schema"
+    reflection: str = field(default=None)
+    """
+    A string that determines whether we need to reflect.
+    """
+    queries: list[str] = field(default=None)
+    """
+    A list of the search queries that were executed
+    """
 
 @dataclass(kw_only=True)
 class OutputState:
@@ -241,20 +230,6 @@ class OutputState:
 
 # -----------------------------------------------------------------------------
 # Prompts
-
-people_extraction_instructions = """
-    You are an expert at parsing people names from text.
-    Your task is to extract a clean list of people names from the user's input string.
-    
-    Guidelines:
-    - Remove any punctuation or separators from the input
-    - Each people name should be listed exactly once
-    - Preserve the official capitalization of people names
-    - Do not add any people that aren't explicitly mentioned in the input
-    
-    Return the people in a structured format that matches the PeopleList schema.
-    Make sure to include their email, as well as their name, company, role, and linkedin if they exist.
-"""
 
 extraction_prompt = """ Your task is to take notes gather from web research
 
@@ -285,9 +260,10 @@ Your query should:
 1. Make sure to look up the right name
 2. Use context clues as to the company the person works at (if it isn't concretely provided)
 3. Do not hallucinate search terms that will make you miss the persons profile entirely
-4. Take advantage of the Linkedin URL if it exists
+4. Take advantage of the Linkedin URL if it exists, you can include the raw URL in your search query as that will lead you to the correct page guaranteed.
 
-Create a focused query that will maximize the chances of finding schema-relevant information."""
+Create a focused query that will maximize the chances of finding schema-relevant information about the person.
+Remember we are interested in determining their work experience mainly."""
 
 _INFO_PROMPT = """You are doing web research on people, {people}. 
 
@@ -319,17 +295,8 @@ Remember: Don't try to format the output to match the schema - just take clear n
 
 # -----------------------------------------------------------------------------
 # Nodes
-def plan_people_to_research(state: OverallResearchState):
-    """Extract a list of people to research based on the user's input."""
 
-    # Extract people list
-    structured_llm = claude_3_5_sonnet.with_structured_output(PeopleList)
-
-    # Generate queries  
-    people_list = structured_llm.invoke([SystemMessage(content=people_extraction_instructions)]+[HumanMessage(content=f"Extract a list of people to research based on this input: {state.people}")])
-    return {"people_list": people_list.people}
-
-async def research_people(state: PeopleResearchState, config: RunnableConfig) -> str:
+async def research_people(state: OverallResearchState, config: RunnableConfig) -> str:
     """Execute a multi-step web search and information extraction process.
 
         This function performs the following steps:
@@ -361,19 +328,23 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
     structured_llm = claude_3_5_sonnet.with_structured_output(Queries)
     
     # Format system instructions
-    people_str = f"Email: {state.people.email}"
-    if state.people.name:
-        people_str += f" Name: {state.people.name}"
-    if state.people.linkedin:
-        people_str += f" LinkedIn URL: {state.people.linkedin}"
-    if state.people.role:
-        people_str += f" Role: {state.people.role}"
-    if state.people.company:
-        people_str += f" Company: {state.people.company}"
+    people_str = f"Email: {state.person.email}"
+    if state.person.name:
+        people_str += f" Name: {state.person.name}"
+    if state.person.linkedin:
+        people_str += f" LinkedIn URL: {state.person.linkedin}"
+    if state.person.role:
+        people_str += f" Role: {state.person.role}"
+    if state.person.company:
+        people_str += f" Company: {state.person.company}"
     query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
-    results = structured_llm.invoke([SystemMessage(content=query_instructions)]+[HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate.")])
+    if 'reflection' in state:
+        human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate. Make them different to these prior queries {state["queries"]}")]
+    else:
+        human_messages = [HumanMessage(content=f"Please generate a list of search queries related to the schema that you want to populate.")]
+    results = structured_llm.invoke([SystemMessage(content=query_instructions)]+human_messages)
 
     # Search client
     tavily_async_client = AsyncTavilyClient()
@@ -385,6 +356,7 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
             search_tasks.append(
                 tavily_async_client.search(
                     query,
+                    days=360,
                     max_results=max_search_results,
                     include_raw_content=True,
                     topic="general"
@@ -394,6 +366,10 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
     # Execute all searches concurrently
     search_docs = await asyncio.gather(*search_tasks)
 
+    # Grab data from raw LinkedIn URL if it exists
+    if state.person.linkedin:
+        search_docs += WebBaseLoader(state.person.linkedin).load()
+
     # Deduplicate and format sources
     source_str = deduplicate_and_format_sources(search_docs, max_tokens_per_source=1000, include_raw_content=True)
 
@@ -401,11 +377,11 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
     p = _INFO_PROMPT.format(
         info=json.dumps(state.extraction_schema, indent=2),
         content=source_str,
-        people=state.people,
+        people=state.person,
         user_notes=state.user_notes
     )
     result = await claude_3_5_sonnet.ainvoke(p)
-    return {"completed_notes": [str(result.content)]}
+    return {"completed_notes": [str(result.content)], "queries": query_list}
 
 def gather_notes_extract_schema(state: OverallResearchState) -> dict[str, Any]:
     """Gather notes from the web search and extract the schema fields."""
@@ -419,30 +395,67 @@ def gather_notes_extract_schema(state: OverallResearchState) -> dict[str, Any]:
     result = structured_llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=f"Produce a structured output from these notes.")])
     return {"extracted_information": result}
 
-async def initiate_people_research(state: OverallResearchState):
-    """ Write any final sections using the Send API to parallelize the process """    
 
-    # Kick off research parallel via Send() API
-    return [
-        Send("research_people", PeopleResearchState(
-            people=people,
-            user_notes=state.user_notes,
-            extraction_schema=state.extraction_schema,
-            completed_notes=[]  # Initialize empty list for completed notes
-        ))  
-        for people in state.people_list 
-    ]
+reflect_prompt = """You are an AI assistant tasked with analyzing the quality and completeness of research gathered about a person.
+
+Review the following extracted information and assess whether additional research is needed:
+
+<Extracted Information>
+{extracted_info}
+</Extracted Information>
+
+Based on the required schema:
+<Schema>
+{schema}
+</Schema>
+
+Please analyze:
+1. What information is missing or incomplete?
+2. What information seems uncertain or needs verification?
+3. Are there any contradictions in the gathered data?
+4. Is the information recent and relevant?
+
+Please respond YES if we need to redo the research, and NO if we can finish. Only return the strings YES or NO, no other strings.
+"""
+
+def reflect_node(state: OverallResearchState) -> dict[str, Any]:
+    """Reflect on gathered information and determine if more research is needed."""
+    # Don't reflect more than once
+    if "reflect" in state:
+        return {"reflection": "NO"}
+    system_prompt = reflect_prompt.format(
+        extracted_info=json.dumps(state.extracted_information, indent=2),
+        schema=json.dumps(state.extraction_schema, indent=2)
+    )
+    
+    reflection = claude_3_5_sonnet.invoke([
+        SystemMessage(content=system_prompt),
+        HumanMessage(content="Analyze the research quality and completeness.")
+    ])
+    
+    return {
+        "reflection": str(reflection.content),
+    }
+
+def decide_whether_to_research_again(state: OverallResearchState):
+    """Determine whether additional research is needed based on reflection results."""
+    # If confidence score is below threshold or there are missing required fields
+    if state['reflection'] == "YES":
+        return "research_people"
+    else:
+        return "__end__"
 
 # Add nodes and edges 
 builder = StateGraph(OverallResearchState, input=InputState, output=OutputState, config_schema=configuration.Configuration)
-builder.add_node("plan_people_to_research", plan_people_to_research)
 builder.add_node("gather_notes_extract_schema", gather_notes_extract_schema)
 builder.add_node("research_people", research_people)
+builder.add_node("reflect", reflect_node)
 
-builder.add_edge(START, "plan_people_to_research")
-builder.add_conditional_edges("plan_people_to_research", initiate_people_research, ["research_people"])
+
+builder.add_conditional_edges(START, "research_people")
 builder.add_edge("research_people", "gather_notes_extract_schema")
-builder.add_edge("gather_notes_extract_schema", END)
+builder.add_edge("gather_notes_extract_schema", "reflect")
+builder.add_conditional_edges("reflect", decide_whether_to_research_again, [END, "research_people"])
 
 # Compile
 graph = builder.compile()

@@ -18,7 +18,7 @@ People mAIstro researches information about a user-supplied list of people, and 
 The user inputs are: 
 
 ```
-* people: List[str] - A list of people to research
+* people: People - A person to research (People are dictionaries with email (required), name (optional), company (optional), LinkedIn URL (optional))
 * schema: str - A JSON schema for the output
 * user_notes: Optional[str] - Any additional notes about the people from the user
 ```
@@ -58,4 +58,34 @@ Here is an example schema that can be supplied:
     "description": "Person information",
     "title": "Person-Schema",
 }
+```
+
+## Evaluation
+
+### Dataset
+
+- [People Dataset](https://smith.langchain.com/public/3dfd291c-4ccf-4d5e-8319-4a5812250599/d)
+
+### Metric
+
+Currently there is a single evaluation metric: fraction of the fields that were correctly extracted (per person). Correctness is defined differently depending on the field type:
+
+- fuzzy matching for list og string fields such as `Prior-Companies`
+- fuzzy matches for fields like `Role` / `Company`
+- checking within a certain tolerance (+/- 15%) for `Years-Experience` field
+
+### Running evals
+
+To evaluate the People mAIstro agent, you can run `evals/test_agent.py` script. This will create new experiments in LangSmith for the [dataset](#dataset) mentioned above.
+
+Basic usage:
+
+```shell
+python evals/test_agent.py
+```
+
+You can also customize additional parameters such as the maximum number of concurrent runs and the experiment prefix.
+
+```shell
+python evals/test_agent.py --max-concurrency 4 --experiment-prefix "My custom prefix"
 ```
