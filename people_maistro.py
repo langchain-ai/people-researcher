@@ -328,15 +328,15 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
     structured_llm = claude_3_5_sonnet.with_structured_output(Queries)
     
     # Format system instructions
-    people_str = f"Email: {state.person.email}"
-    if state.person.name:
-        people_str += f" Name: {state.person.name}"
-    if state.person.linkedin:
-        people_str += f" LinkedIn URL: {state.person.linkedin}"
-    if state.person.role:
-        people_str += f" Role: {state.person.role}"
-    if state.person.company:
-        people_str += f" Company: {state.person.company}"
+    people_str = f"Email: {state.person['email']}"
+    if 'name' in state.person:
+        people_str += f" Name: {state.person['name']}"
+    if 'linkedin' in state.person:
+        people_str += f" LinkedIn URL: {state.person['linkedin']}"
+    if 'role' in state.person:
+        people_str += f" Role: {state.person['role']}"
+    if 'company' in state.person:
+        people_str += f" Company: {state.person['company']}"
     query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
