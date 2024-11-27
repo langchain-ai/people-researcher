@@ -88,7 +88,7 @@ By default this will use the `Person Researcher Dataset` dataset & `People mAIst
 
 You can pass the following parameters to customize the evaluation:
 
-- `--dataset-id`: ID of the dataset to evaluate against. Defaults to `Person Researcher Dataset` dataset.
+- `--dataset-name`: Name of the dataset to evaluate against. Defaults to `Person Researcher Dataset` dataset.
 - `--agent-id`: ID of the agent to evaluate. Defaults to `people_maistro`.
 - `--agent-url`: URL of the deployed agent to evaluate. Defaults to `People mAIstro` deployment.
 - `--experiment-prefix`: Prefix for the experiment name.
