@@ -147,12 +147,16 @@ Notes from research:
 
 class Person(BaseModel):
     """A class representing a person to research."""
-    name: str
-    """The name of the person"""
+    name: Optional[str]
+    """The name of the person."""
     company: Optional[str]
-    """The current company of the person"""
+    """The current company of the person."""
     linkedin: Optional[str]
-    """The Linkedin URL of the person"""
+    """The Linkedin URL of the person."""
+    email: str
+    """The email of the person."""
+    role: Optional[str]
+    """The current title of the person."""
 
 class PeopleList(BaseModel):
     people: List[Person] = Field(
@@ -249,6 +253,7 @@ people_extraction_instructions = """
     - Do not add any people that aren't explicitly mentioned in the input
     
     Return the people in a structured format that matches the PeopleList schema.
+    Make sure to include their email, as well as their name, company, role, and linkedin if they exist.
 """
 
 extraction_prompt = """ Your task is to take notes gather from web research
@@ -277,10 +282,10 @@ Generate at most {max_search_queries} search queries that will help gather the f
 </schema>
 
 Your query should:
-1. Focus on finding factual, up-to-date information
-2. Target official sources, news, and websites
-3. Prioritize finding information that matches the schema requirements
-4. Be specific enough to avoid irrelevant results
+1. Make sure to look up the right name
+2. Use context clues as to the company the person works at (if it isn't concretely provided)
+3. Do not hallucinate search terms that will make you miss the persons profile entirely
+4. Take advantage of the Linkedin URL if it exists
 
 Create a focused query that will maximize the chances of finding schema-relevant information."""
 
@@ -356,7 +361,15 @@ async def research_people(state: PeopleResearchState, config: RunnableConfig) ->
     structured_llm = claude_3_5_sonnet.with_structured_output(Queries)
     
     # Format system instructions
-    people_str = state.people.name + " Linkedin URL: " + state.people.linkedin
+    people_str = f"Email: {state.people.email}"
+    if state.people.name:
+        people_str += f" Name: {state.people.name}"
+    if state.people.linkedin:
+        people_str += f" LinkedIn URL: {state.people.linkedin}"
+    if state.people.role:
+        people_str += f" Role: {state.people.role}"
+    if state.people.company:
+        people_str += f" Company: {state.people.company}"
     query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
 
     # Generate queries  
