@@ -452,7 +452,7 @@ builder.add_node("research_people", research_people)
 builder.add_node("reflect", reflect_node)
 
 
-builder.add_conditional_edges(START, "research_people")
+builder.add_edge(START, "research_people")
 builder.add_edge("research_people", "gather_notes_extract_schema")
 builder.add_edge("gather_notes_extract_schema", "reflect")
 builder.add_conditional_edges("reflect", decide_whether_to_research_again, [END, "research_people"])
