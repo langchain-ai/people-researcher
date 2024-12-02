@@ -2,6 +2,24 @@
 
 People mAIstro researches information about a user-supplied list of people, and returns it in any user-defined schema.
 
+## Quickstart
+
+1. Populate the `.env` file: 
+```
+$ cp .env.example .env
+```
+
+2. Load this folder in [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download) 
+
+3. Provide a schema for the output, and pass in a company name. 
+
+4. Run the graph just inputting a `person` email.
+
+* A schema (see below for details) is optional. It will use a default schema defined [here](https://github.com/langchain-ai/company_mAIstro/blob/main/people_maistro.py#L170) if none is provided.
+* Additional user notes about the person can be provided as a text field, and will be included in the research process. 
+
+<img width="1624" alt="studio" src="./docs/images/studio.png">    
+
 ## Overview
 
  People mAIstro follows a [plan-and-execute workflow](https://github.com/assafelovic/gpt-researcher) that separates planning from research, allowing for better resource management and significantly reducing overall research time:
@@ -16,6 +34,16 @@ People mAIstro researches information about a user-supplied list of people, and 
      - Identifies uncertain data that needs verification
      - Looks for contradictions in the gathered data
      - If needed, triggers additional research with refined search queries
+
+## Configuration
+
+The configuration for People mAIstro is defined in the `configuration.py` file: 
+* `max_search_queries`: int = 3 # Max search queries per company
+* `max_search_results`: int = 3 # Max search results per query
+
+These can be added in Studio:
+
+<img width="1624" alt="config" src="./docs/images/config.png">
 
 ## Inputs 
 
