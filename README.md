@@ -106,4 +106,4 @@ Here is an example schema that can be supplied to research a company:
 
 ## Evaluation
 
-Please see instructions on how to run evals [here](https://github.com/langchain-ai/agent-evals/tree/main/people_data_enrichment.
+Please see instructions on how to run evals [here](https://github.com/langchain-ai/agent-evals/tree/main/people_data_enrichment).
