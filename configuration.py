@@ -6,11 +6,13 @@ from langchain_core.runnables import RunnableConfig
 from typing_extensions import Annotated
 from dataclasses import dataclass
 
+
 @dataclass(kw_only=True)
 class Configuration:
     """The configurable fields for the chatbot."""
-    max_search_queries: int = 3 # Max search queries per person
-    max_search_results: int = 3 # Max search results per query
+
+    max_search_queries: int = 3  # Max search queries per person
+    max_search_results: int = 3  # Max search results per query
 
     @classmethod
     def from_runnable_config(
