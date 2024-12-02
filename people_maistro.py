@@ -167,13 +167,48 @@ class Queries(BaseModel):
         description="List of search queries.",
     )   
 
+DEFAULT_EXTRACTION_SCHEMA = {
+    "type": "object",
+    "required": [
+      "Years-Experience",
+      "Company",
+      "Role",
+      "Prior-Companies",
+    ],
+    "properties": {
+      "Role": {
+        "type": "string",
+        "description": "Current role of the person."
+      },
+      "Years-Experience": {
+        "type": "number",
+        "description": "How many years of full time work experience (excluding internships) does this person have."
+      },
+      "Company": {
+        "type": "string",
+        "description": "The name of the current company the person works at."
+      },
+      "Prior-Companies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of previous companies where the person has worked"
+      }
+    },
+    "description": "Person information",
+    "title": "Person-Schema",
+}
+
 @dataclass(kw_only=True)
 class InputState:
     """Input state defines the interface between the graph and the user (external API)."""
     person: Person
     "Person to research."
 
-    extraction_schema: dict[str, Any]
+    extraction_schema:  dict[str, Any] = field(
+        default_factory=lambda: DEFAULT_EXTRACTION_SCHEMA
+    )
     "The json schema defines the information the agent is tasked with filling out."
 
     user_notes: Optional[dict[str, Any]] = field(default=None)
@@ -185,7 +220,9 @@ class OverallResearchState:
     person: Person
     "Person to research provided by the user."
 
-    extraction_schema: dict[str, Any]
+    extraction_schema:  dict[str, Any] = field(
+        default_factory=lambda: DEFAULT_EXTRACTION_SCHEMA
+    )
     "The json schema defines the information the agent is tasked with filling out."
 
     user_notes: str = field(default=None)
@@ -255,6 +292,10 @@ Generate at most {max_search_queries} search queries that will help gather the f
 <schema>
 {info}
 </schema>
+
+<User notes>
+{user_notes}
+</User notes>
 
 Your query should:
 1. Make sure to look up the right name
@@ -337,7 +378,10 @@ async def research_people(state: OverallResearchState, config: RunnableConfig) -
         people_str += f" Role: {state.person['role']}"
     if 'company' in state.person:
         people_str += f" Company: {state.person['company']}"
-    query_instructions = query_writer_instructions.format(people=people_str, info=json.dumps(state.extraction_schema, indent=2), max_search_queries=max_search_queries)
+    query_instructions = query_writer_instructions.format(people=people_str, 
+                                                          info=json.dumps(state.extraction_schema, indent=2), 
+                                                          user_notes=state.user_notes,
+                                                          max_search_queries=max_search_queries)
 
     # Generate queries  
     if state.reflection is not None:

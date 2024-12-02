@@ -11,7 +11,11 @@ People mAIstro researches information about a user-supplied list of people, and 
      - Uses [Tavily API](https://tavily.com/) for targeted web searches, performing up to `max_search_queries` queries per person.
      - Performs web searches for each person in parallel and returns up to `max_search_results` results per query.
    - **Extract Schema**: After research is complete, the system uses an LLM to extract the information from the research in the user-defined schema.
-
+   - **Reflection Phase**: The system analyzes the extracted information for completeness and quality:
+     - Checks for missing or incomplete information
+     - Identifies uncertain data that needs verification
+     - Looks for contradictions in the gathered data
+     - If needed, triggers additional research with refined search queries
 
 ## Inputs 
 
@@ -19,11 +23,18 @@ The user inputs are:
 
 ```
 * people: People - A person to research (People are dictionaries with email (required), name (optional), company (optional), LinkedIn URL (optional))
-* schema: str - A JSON schema for the output
+* schema: Optional[dict] - A JSON schema for the output
 * user_notes: Optional[str] - Any additional notes about the people from the user
 ```
 
-Here is an example schema that can be supplied: 
+If a schema is not provided, the system will use a default schema (`DEFAULT_EXTRACTION_SCHEMA`) defined in `people_maistro.py`.
+
+### Schema
+
+> ⚠️ **WARNING:** JSON schemas require `title` and `description` fields for [extraction](https://python.langchain.com/docs/how_to/structured_output/#typeddict-or-json-schema).
+> ⚠️ **WARNING:** Avoid JSON objects with nesting; LLMs have challenges performing structured extraction from nested objects. 
+
+Here is an example schema that can be supplied to research a company:  
 
 ```
 {
@@ -60,7 +71,6 @@ Here is an example schema that can be supplied:
 }
 ```
 
-
 ## Dataset
 
 There is one dataset for public evaluation in LangSmith:
@@ -70,7 +80,6 @@ There is one dataset for public evaluation in LangSmith:
   - `Company`
   - `Role`
   - `Prior-Companies`
-
 
 ### Running evals
 
