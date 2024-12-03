@@ -71,36 +71,31 @@ Here is an example schema that can be supplied to research a company:
 
 ```
 {
-    "type": "object",
-    "required": [
-      "Years-Experience",
-      "Company",
-      "Role",
-      "Prior-Companies",
-    ],
-    "properties": {
-      "Role": {
-        "type": "string",
-        "description": "Current role of the person."
-      },
-      "Years-Experience": {
-        "type": "number",
-        "description": "How many years of full time work experience (excluding internships) does this person have."
-      },
-      "Company": {
-        "type": "string",
-        "description": "The name of the current company the person works at."
-      },
-      "Prior-Companies": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        },
-        "description": "List of previous companies where the person has worked"
-      }
+  "type": "object",
+  "required": [
+    "years_experience",
+    "current_company",
+    "role",
+    "prior_companies",
+  ],
+  "properties": {
+    "role": {"type": "string", "description": "Current role of the person."},
+    "years_experience": {
+      "type": "number",
+      "description": "How many years of full time work experience (excluding internships) does this person have.",
     },
-    "description": "Person information",
-    "title": "Person-Schema",
+    "current_company": {
+      "type": "string",
+      "description": "The name of the current company the person works at.",
+    },
+    "prior_companies": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "List of previous companies where the person has worked",
+    },
+  },
+  "description": "Person information",
+  "title": "Person",
 }
 ```
 
