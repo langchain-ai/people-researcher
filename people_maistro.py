@@ -234,9 +234,7 @@ class OutputState:
 # -----------------------------------------------------------------------------
 # Prompts
 
-extraction_prompt = """Your task is to take notes gather from web research
-
-and extract them into the following schema. 
+extraction_prompt = """Your task is to take notes gather from web research and extract them into the following schema.
 
 <schema>
 {info}
