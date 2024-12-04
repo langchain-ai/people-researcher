@@ -1,49 +1,69 @@
-# People mAIstro
+# People Researcher Agent
 
-People mAIstro researches information about a user-supplied list of people, and returns it in any user-defined schema.
+People Researcher Agent searches the web for information about a user-supplied person and returns it in a structured format defined by user-supplied JSON schema.
 
-## Quickstart
+## 🚀 Quickstart with LangGraph server
 
-1. Populate the `.env` file: 
+Install the langgraph CLI:
+
+```shell
+pip install -U "langgraph-cli[inmem]"
 ```
-$ cp .env.example .env
+
+Install dependencies:
+
+```shell
+pip install -e .
+```  
+
+Load API keys into the environment for the [LangSmith](https://smith.langchain.com) SDK, [Anthropic API](https://console.anthropic.com/) and [Tavily API](https://tavily.com/):
+
+```shell
+export LANGSMITH_API_KEY=<your_langsmith_api_key>
+export ANTHROPIC_API_KEY=<your_anthropic_api_key>
+export TAVILY_API_KEY=<your_tavily_api_key>
 ```
 
-2. Load this folder in [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download) 
+Launch the agent:
 
-3. Provide a schema for the output, and pass in a company name. 
+```shell
+langgraph dev
+```
 
-4. Run the graph just inputting a `person` email.
+If all is well, you should see the following output:
 
-* A schema (see below for details) is optional. It will use a default schema defined [here](https://github.com/langchain-ai/company_mAIstro/blob/main/people_maistro.py#L170) if none is provided.
-* Additional user notes about the person can be provided as a text field, and will be included in the research process. 
+>> Ready!
+>> 
+>> API: http://127.0.0.1:2024
+>> 
+>> Docs: http://127.0.0.1:2024/docs
+>> 
+>> LangGraph Studio Web UI: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
 
-<img width="1624" alt="studio" src="./docs/images/studio.png">    
+## How it works
 
-## Overview
+People Researcher Agent follows a multi-step research and extraction workflow that separates web research from schema extraction, allowing for better resource management and comprehensive data collection:
 
- People mAIstro follows a [plan-and-execute workflow](https://github.com/assafelovic/gpt-researcher) that separates planning from research, allowing for better resource management and significantly reducing overall research time:
-
-   - **Planning Phase**: An LLM analyzes the user's set of people to research and returns a list. 
-   - **Research Phase**: The system parallelizes web research across all people in parallel:
-     - Uses [Tavily API](https://tavily.com/) for targeted web searches, performing up to `max_search_queries` queries per person.
-     - Performs web searches for each person in parallel and returns up to `max_search_results` results per query.
-   - **Extract Schema**: After research is complete, the system uses an LLM to extract the information from the research in the user-defined schema.
-   - **Reflection Phase**: The system analyzes the extracted information for completeness and quality:
-     - Checks for missing or incomplete information
-     - Identifies uncertain data that needs verification
-     - Looks for contradictions in the gathered data
-     - If needed, triggers additional research with refined search queries
+   - **Research Phase**: The system performs intelligent web research on the input person:
+     - Uses an LLM to generate targeted search queries based on the schema requirements (up to `max_search_queries`)
+     - Executes concurrent web searches via [Tavily API](https://tavily.com/), retrieving up to `max_search_results` results per query
+     - Takes structured research notes focused on schema-relevant information
+   - **Extraction Phase**: After research is complete, the system:
+     - Consolidates all research notes
+     - Uses an LLM to extract and format the information according to the user-defined schema
+     - Returns the structured data in the exact format requested
+   - **Reflection Phase**: The system evaluates the quality of extracted information:
+     - Analyzes completeness of required fields
+     - Identifies any missing or incomplete information
+     - Generates targeted follow-up search queries if needed
+     - Continues research until information is satisfactory or max reflection steps reached
 
 ## Configuration
 
-The configuration for People mAIstro is defined in the `configuration.py` file: 
-* `max_search_queries`: int = 3 # Max search queries per company
+The configuration for People Researcher Agent is defined in the `src/agent/configuration.py` file: 
+* `max_search_queries`: int = 3 # Max search queries 
 * `max_search_results`: int = 3 # Max search results per query
-
-These can be added in Studio:
-
-<img width="1624" alt="config" src="./docs/images/config.png">
+* `max_reflection_steps`: int = 1 # Max reflection steps
 
 ## Inputs 
 
@@ -67,7 +87,7 @@ If a schema is not provided, the system will use a default schema (`DEFAULT_EXTR
 > ⚠️ **WARNING:** JSON schemas require `title` and `description` fields for [extraction](https://python.langchain.com/docs/how_to/structured_output/#typeddict-or-json-schema).
 > ⚠️ **WARNING:** Avoid JSON objects with nesting; LLMs have challenges performing structured extraction from nested objects. 
 
-Here is an example schema that can be supplied to research a company:  
+Here is an example schema that can be supplied to research a person:  
 
 ```
 {
@@ -101,4 +121,45 @@ Here is an example schema that can be supplied to research a company:
 
 ## Evaluation
 
-Please see instructions on how to run evals [here](https://github.com/langchain-ai/agent-evals/tree/main/people_data_enrichment).
+Prior to engaging in any optimization, it is important to establish a baseline performance. This repository includes:
+
+1. A dataset consisting of a list of people and the expected structured information to be extracted for each person.
+2. An evaluation script that can be used to evaluate the agent on this dataset.
+
+### Set up
+
+Make sure you have the LangSmith CLI installed:
+
+```shell
+pip install langsmith
+```
+
+And set your API key:
+
+```shell
+export LANGSMITH_API_KEY=<your_langsmith_api_key>
+export ANTHROPIC_API_KEY=<your_anthropic_api_key>
+```
+
+### Evaluation metric
+
+A score between 0 and 1 is assigned to each extraction result by an LLM model that acts
+as a judge.
+
+The model assigns the score based on how closely the extracted information matches the expected information.
+
+### Get the dataset
+
+Create a new dataset in LangSmith using the code in the `eval` folder:
+
+```shell
+python eval/create_dataset.py
+```
+
+### Run the evaluation
+
+To run the evaluation, you can use the `run_eval.py` script in the `eval` folder. This will create a new experiment in LangSmith for the dataset you created in the previous step.
+
+```shell
+python eval/run_eval.py --experiment-prefix "My custom prefix" --agent-url http://localhost:2024
+```
