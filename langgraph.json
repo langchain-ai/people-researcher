@@ -1,11 +1,8 @@
 {
-    "dockerfile_lines": [],
     "graphs": {
-      "people_maistro": "./people_maistro.py:graph"
+      "people_researcher": "./src/agent/graph.py:graph"
     },
     "python_version": "3.11",
     "env": "./.env",
-    "dependencies": [
-      "."
-    ]
+    "dependencies": ["."]
   }
