@@ -96,26 +96,31 @@ Here is an example schema that can be supplied to research a person:
     "years_experience",
     "current_company",
     "role",
-    "prior_companies",
+    "prior_companies"
   ],
   "properties": {
-    "role": {"type": "string", "description": "Current role of the person."},
+    "role": {
+      "type": "string",
+      "description": "Current role of the person."
+    },
     "years_experience": {
       "type": "number",
-      "description": "How many years of full time work experience (excluding internships) does this person have.",
+      "description": "How many years of full time work experience (excluding internships) does this person have."
     },
     "current_company": {
       "type": "string",
-      "description": "The name of the current company the person works at.",
+      "description": "The name of the current company the person works at."
     },
     "prior_companies": {
       "type": "array",
-      "items": {"type": "string"},
-      "description": "List of previous companies where the person has worked",
-    },
+      "items": {
+        "type": "string"
+      },
+      "description": "List of previous companies where the person has worked"
+    }
   },
   "description": "Person information",
-  "title": "Person",
+  "title": "Person"
 }
 ```
 
