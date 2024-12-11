@@ -1,0 +1,170 @@
+# People Researcher Agent
+
+People Researcher Agent searches the web for information about a user-supplied person and returns it in a structured format defined by user-supplied JSON schema.
+
+## 🚀 Quickstart with LangGraph server
+
+Install the langgraph CLI:
+
+```shell
+pip install -U "langgraph-cli[inmem]"
+```
+
+Install dependencies:
+
+```shell
+pip install -e .
+```  
+
+Load API keys into the environment for the [LangSmith](https://smith.langchain.com) SDK, [Anthropic API](https://console.anthropic.com/) and [Tavily API](https://tavily.com/):
+
+```shell
+export LANGSMITH_API_KEY=<your_langsmith_api_key>
+export ANTHROPIC_API_KEY=<your_anthropic_api_key>
+export TAVILY_API_KEY=<your_tavily_api_key>
+```
+
+Launch the agent:
+
+```shell
+langgraph dev
+```
+
+If all is well, you should see the following output:
+
+>> Ready!
+>> 
+>> API: http://127.0.0.1:2024
+>> 
+>> Docs: http://127.0.0.1:2024/docs
+>> 
+>> LangGraph Studio Web UI: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
+
+## How it works
+
+People Researcher Agent follows a multi-step research and extraction workflow that separates web research from schema extraction, allowing for better resource management and comprehensive data collection:
+
+   - **Research Phase**: The system performs intelligent web research on the input person:
+     - Uses an LLM to generate targeted search queries based on the schema requirements (up to `max_search_queries`)
+     - Executes concurrent web searches via [Tavily API](https://tavily.com/), retrieving up to `max_search_results` results per query
+     - Takes structured research notes focused on schema-relevant information
+   - **Extraction Phase**: After research is complete, the system:
+     - Consolidates all research notes
+     - Uses an LLM to extract and format the information according to the user-defined schema
+     - Returns the structured data in the exact format requested
+   - **Reflection Phase**: The system evaluates the quality of extracted information:
+     - Analyzes completeness of required fields
+     - Identifies any missing or incomplete information
+     - Generates targeted follow-up search queries if needed
+     - Continues research until information is satisfactory or max reflection steps reached
+
+## Configuration
+
+The configuration for People Researcher Agent is defined in the `src/agent/configuration.py` file: 
+* `max_search_queries`: int = 3 # Max search queries 
+* `max_search_results`: int = 3 # Max search results per query
+* `max_reflection_steps`: int = 1 # Max reflection steps
+
+## Inputs 
+
+The user inputs are: 
+
+```
+* person: a JSON object with the following fields:
+    - `email` (required): The email of the person
+    - `name` (optional): The name of the person
+    - `company` (optional): The current company of the person
+    - `linkedin` (optional): The Linkedin URL of the person
+    - `role` (optional): The current title of the person
+* schema: Optional[dict] - A JSON schema for the output
+* user_notes: Optional[str] - Any additional notes about the people from the user
+```
+
+If a schema is not provided, the system will use a default schema (`DEFAULT_EXTRACTION_SCHEMA`) defined in `people_maistro.py`.
+
+### Schema
+
+> ⚠️ **WARNING:** JSON schemas require `title` and `description` fields for [extraction](https://python.langchain.com/docs/how_to/structured_output/#typeddict-or-json-schema).
+> ⚠️ **WARNING:** Avoid JSON objects with nesting; LLMs have challenges performing structured extraction from nested objects. 
+
+Here is an example schema that can be supplied to research a person:  
+
+```
+{
+  "type": "object",
+  "required": [
+    "years_experience",
+    "current_company",
+    "role",
+    "prior_companies"
+  ],
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "Current role of the person."
+    },
+    "years_experience": {
+      "type": "number",
+      "description": "How many years of full time work experience (excluding internships) does this person have."
+    },
+    "current_company": {
+      "type": "string",
+      "description": "The name of the current company the person works at."
+    },
+    "prior_companies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of previous companies where the person has worked"
+    }
+  },
+  "description": "Person information",
+  "title": "Person"
+}
+```
+
+## Evaluation
+
+Prior to engaging in any optimization, it is important to establish a baseline performance. This repository includes:
+
+1. A dataset consisting of a list of people and the expected structured information to be extracted for each person.
+2. An evaluation script that can be used to evaluate the agent on this dataset.
+
+### Set up
+
+Make sure you have the LangSmith CLI installed:
+
+```shell
+pip install langsmith
+```
+
+And set your API key:
+
+```shell
+export LANGSMITH_API_KEY=<your_langsmith_api_key>
+export ANTHROPIC_API_KEY=<your_anthropic_api_key>
+```
+
+### Evaluation metric
+
+A score between 0 and 1 is assigned to each extraction result by an LLM model that acts
+as a judge.
+
+The model assigns the score based on how closely the extracted information matches the expected information.
+
+### Get the dataset
+
+Create a new dataset in LangSmith using the code in the `eval` folder:
+
+```shell
+python eval/create_dataset.py
+```
+
+### Run the evaluation
+
+To run the evaluation, you can use the `run_eval.py` script in the `eval` folder. This will create a new experiment in LangSmith for the dataset you created in the previous step.
+
+```shell
+python eval/run_eval.py --experiment-prefix "My custom prefix" --agent-url http://localhost:2024
+```
