@@ -17,6 +17,8 @@ cd people-researcher
 uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.11 langgraph dev
 ```
 
+![company_people_researcher](https://github.com/user-attachments/assets/312691da-7be7-49d7-acaf-108f77bb4bc5)
+
 ## How it works
 
 People Researcher Agent follows a multi-step research and extraction workflow that separates web research from schema extraction, allowing for better resource management and comprehensive data collection:
