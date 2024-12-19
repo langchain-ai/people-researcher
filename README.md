@@ -4,41 +4,18 @@ People Researcher Agent searches the web for information about a user-supplied p
 
 ## 🚀 Quickstart with LangGraph server
 
-Install the langgraph CLI:
-
-```shell
-pip install -U "langgraph-cli[inmem]"
+Set API keys for the LLM of choice (Anthropic is set by default set in `src/agent/graph.py`) and [Tavily API](https://tavily.com/):
+```
+cp .env.example .env
 ```
 
-Install dependencies:
-
-```shell
-pip install -e .
-```  
-
-Load API keys into the environment for the [LangSmith](https://smith.langchain.com) SDK, [Anthropic API](https://console.anthropic.com/) and [Tavily API](https://tavily.com/):
-
-```shell
-export LANGSMITH_API_KEY=<your_langsmith_api_key>
-export ANTHROPIC_API_KEY=<your_anthropic_api_key>
-export TAVILY_API_KEY=<your_tavily_api_key>
+Clone the repository and launch the assistant [using the LangGraph server](https://langchain-ai.github.io/langgraph/cloud/reference/cli/#dev):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone https://github.com/langchain-ai/people-researcher.git
+cd people-researcher
+uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.11 langgraph dev
 ```
-
-Launch the agent:
-
-```shell
-langgraph dev
-```
-
-If all is well, you should see the following output:
-
->> Ready!
->> 
->> API: http://127.0.0.1:2024
->> 
->> Docs: http://127.0.0.1:2024/docs
->> 
->> LangGraph Studio Web UI: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
 
 ## How it works
 
